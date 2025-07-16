@@ -15,12 +15,17 @@ import (
 
 // Service represents a service that interacts with a database.
 type Service interface {
-	// Health returns a map of health status information.
-	// The keys and values in the map are service-specific.
 	Health() map[string]string
+	CreateTrace(TraceRequest) error
+	CreateGeneration(GenerationRequest) error
+	CreateSpan(SpanRequest) error
+	UpdateSpan(spanID string, req SpanUpdateRequest) error
+	TraceExists(traceID string) bool
+	SpanExists(spanID string) bool
+	CreateEvent(EventRequest) error
+	CreateScore(ScoreRequest) error
+	GenerationExists(generationID string) bool
 
-	// Close terminates the database connection.
-	// It returns an error if the connection cannot be closed.
 	Close() error
 }
 
