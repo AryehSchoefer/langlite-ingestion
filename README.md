@@ -72,6 +72,16 @@ psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANG
 make run
 ```
 
+## For Production
+
+When you want to build for production deployment:
+
+```bash
+docker build --target prod -t myapp:latest .
+```
+
+This creates an optimized production image without development tools like air. The multi-stage build automatically handles dependencies - Docker will build the `build` stage first to compile the Go binary, then create the minimal `prod` stage with just the compiled application.
+
 ## MakeFile
 
 Run build make command with tests

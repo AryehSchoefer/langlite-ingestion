@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      target: prod
+      target: dev
     restart: unless-stopped
     ports:
       - ${PORT}:${PORT}
@@ -16,6 +16,8 @@ services:
       LANGLITE_DB_USERNAME: ${LANGLITE_DB_USERNAME}
       LANGLITE_DB_PASSWORD: ${LANGLITE_DB_PASSWORD}
       LANGLITE_DB_SCHEMA: ${LANGLITE_DB_SCHEMA}
+    volumes:
+      - ./:/app
     depends_on:
       langlite_db:
         condition: service_healthy
