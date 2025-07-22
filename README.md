@@ -25,25 +25,51 @@ The following environment variables are required for the service to run:
 
 ## Getting Started
 
-### Using Docker Compose (Recommended)
+### Quick Start with Docker Compose (Recommended)
 
-The easiest way to run the application is using Docker Compose, which automatically sets up both the application and PostgreSQL database with the required schema:
+The easiest way to run the complete application stack:
 
 ```bash
-docker-compose up
+make docker-run
 ```
 
-This will:
-- Start a PostgreSQL database with the schema automatically initialized
-- Build and run the Go application
-- Set up networking between the services
+This automatically:
+- Builds and starts both the Go application and PostgreSQL database
+- Initializes the database schema from `schema.sql`
+- Sets up networking between services
+- Falls back to `docker-compose` if `docker compose` isn't available
 
-### Manual Setup
+To stop the services:
+```bash
+make docker-down
+```
 
-If you prefer to run the application manually, ensure your PostgreSQL database is set up with the required schema:
+### Development Setup
+
+For local development with live reload, you'll need to use your own PostgreSQL instance since the Makefile doesn't provide a database-only option:
 
 ```bash
+# Set up your own PostgreSQL with the schema
 psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANGLITE_DB_DATABASE -f schema.sql
+
+# Run Go app with live reload
+make watch         # Installs 'air' if needed
+```
+
+### Alternative Setups
+
+**Run the Go application locally** (requires external PostgreSQL):
+```bash
+make run
+```
+
+**Use your own PostgreSQL instance:**
+```bash
+# First, set up your database with the required schema
+psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANGLITE_DB_DATABASE -f schema.sql
+
+# Then run the application
+make run
 ```
 
 ## MakeFile
