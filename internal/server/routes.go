@@ -38,13 +38,13 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Get("/health", s.healthHandler)
 
 	// langlite ingestion routes
-	r.Post("/v1/trace", s.CreateTrace)
-	r.Post("/v1/generation", s.CreateGeneration)
-	r.Post("/v1/span", s.CreateSpan)
-	r.Post("/v1/span/{id}", s.CreateSpan)
-	r.Post("/v1/trace/batch", s.TraceBatchHandler)
-	r.Post("/v1/event", s.EventHandler)
-	r.Post("/v1/score", s.ScoreHandler)
+	r.Post("/api/v1/traces", s.CreateTrace)
+	r.Post("/api/v1/generations", s.CreateGeneration)
+	r.Post("/api/v1/spans", s.CreateSpan)
+	r.Post("/api/v1/spans/{id}", s.UpdateSpan)
+	r.Post("/api/v1/events", s.EventHandler)
+	r.Post("/api/v1/scores", s.ScoreHandler)
+	r.Post("/api/v1/batch", s.BatchHandler)
 
 	return r
 }

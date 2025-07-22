@@ -244,6 +244,309 @@ func (s *Server) UpdateSpan(w http.ResponseWriter, r *http.Request) {
 	encode(w, r, http.StatusOK, response)
 }
 
+func (s *Server) BatchHandler(w http.ResponseWriter, r *http.Request) {
+	batchReq, problems, err := decodeValid[database.BatchRequest](r)
+	if err != nil {
+		if len(problems) > 0 {
+			errorResp := database.ErrorResponse{
+				Error:    "Validation failed",
+				Message:  "The request contains invalid data",
+				Code:     http.StatusBadRequest,
+				Problems: problems,
+			}
+			encode(w, r, http.StatusBadRequest, errorResp)
+			return
+		}
+
+		errorResp := database.ErrorResponse{
+			Error:   "Invalid request",
+			Message: "Could not parse request body",
+			Code:    http.StatusBadRequest,
+		}
+		encode(w, r, http.StatusBadRequest, errorResp)
+		return
+	}
+
+	totalItems := len(batchReq.Traces) + len(batchReq.Spans) + len(batchReq.Generations) + len(batchReq.Events) + len(batchReq.Scores)
+	response := database.BatchResponse{
+		Results: make([]database.BatchResult, 0, totalItems),
+	}
+
+	index := 0
+
+	for _, traceReq := range batchReq.Traces {
+		result := s.processBatchTrace(traceReq, index, r)
+		response.Results = append(response.Results, result)
+		if result.Status == "success" {
+			response.Summary.Succeeded++
+		} else {
+			response.Summary.Failed++
+		}
+		index++
+	}
+
+	for _, spanReq := range batchReq.Spans {
+		result := s.processBatchSpan(spanReq, index, r)
+		response.Results = append(response.Results, result)
+		if result.Status == "success" {
+			response.Summary.Succeeded++
+		} else {
+			response.Summary.Failed++
+		}
+		index++
+	}
+
+	for _, genReq := range batchReq.Generations {
+		result := s.processBatchGeneration(genReq, index, r)
+		response.Results = append(response.Results, result)
+		if result.Status == "success" {
+			response.Summary.Succeeded++
+		} else {
+			response.Summary.Failed++
+		}
+		index++
+	}
+
+	for _, eventReq := range batchReq.Events {
+		result := s.processBatchEvent(eventReq, index, r)
+		response.Results = append(response.Results, result)
+		if result.Status == "success" {
+			response.Summary.Succeeded++
+		} else {
+			response.Summary.Failed++
+		}
+		index++
+	}
+
+	for _, scoreReq := range batchReq.Scores {
+		result := s.processBatchScore(scoreReq, index, r)
+		response.Results = append(response.Results, result)
+		if result.Status == "success" {
+			response.Summary.Succeeded++
+		} else {
+			response.Summary.Failed++
+		}
+		index++
+	}
+
+	response.Summary.Total = totalItems
+
+	statusCode := http.StatusCreated
+	if response.Summary.Failed > 0 {
+		statusCode = http.StatusMultiStatus
+	}
+
+	encode(w, r, statusCode, response)
+}
+
+func (s *Server) processBatchTrace(traceReq database.TraceRequest, index int, r *http.Request) database.BatchResult {
+	result := database.BatchResult{
+		Index:  index,
+		Status: "error",
+	}
+
+	if problems := traceReq.Valid(r.Context()); len(problems) > 0 {
+		var errorMessages []string
+		for field, problem := range problems {
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %s", field, problem))
+		}
+		result.Error = "Validation failed: " + strings.Join(errorMessages, ", ")
+		return result
+	}
+
+	if traceReq.ID == "" {
+		traceReq.ID = uuid.New().String()
+	}
+
+	if traceReq.StartTime.IsZero() {
+		traceReq.StartTime = time.Now().UTC()
+	}
+
+	if err := s.db.CreateTrace(traceReq); err != nil {
+		result.Error = "Database error: " + err.Error()
+		return result
+	}
+
+	result.ID = traceReq.ID
+	result.Status = "success"
+	result.Error = ""
+	return result
+}
+
+func (s *Server) processBatchSpan(spanReq database.SpanRequest, index int, r *http.Request) database.BatchResult {
+	result := database.BatchResult{
+		Index:  index,
+		Status: "error",
+	}
+
+	if problems := spanReq.Valid(r.Context()); len(problems) > 0 {
+		var errorMessages []string
+		for field, problem := range problems {
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %s", field, problem))
+		}
+		result.Error = "Validation failed: " + strings.Join(errorMessages, ", ")
+		return result
+	}
+
+	if spanReq.ID == "" {
+		spanReq.ID = uuid.New().String()
+	}
+
+	if spanReq.StartTime.IsZero() {
+		spanReq.StartTime = time.Now().UTC()
+	}
+
+	if !s.db.TraceExists(spanReq.TraceID) {
+		result.Error = "Invalid trace: The specified trace_id does not exist"
+		return result
+	}
+
+	if spanReq.ParentID != "" && !s.db.SpanExists(spanReq.ParentID) {
+		result.Error = "Invalid parent span: The specified parent_id does not exist"
+		return result
+	}
+
+	if err := s.db.CreateSpan(spanReq); err != nil {
+		result.Error = "Database error: " + err.Error()
+		return result
+	}
+
+	result.ID = spanReq.ID
+	result.Status = "success"
+	result.Error = ""
+	return result
+}
+
+func (s *Server) processBatchGeneration(genReq database.GenerationRequest, index int, r *http.Request) database.BatchResult {
+	result := database.BatchResult{
+		Index:  index,
+		Status: "error",
+	}
+
+	if problems := genReq.Valid(r.Context()); len(problems) > 0 {
+		var errorMessages []string
+		for field, problem := range problems {
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %s", field, problem))
+		}
+		result.Error = "Validation failed: " + strings.Join(errorMessages, ", ")
+		return result
+	}
+
+	if genReq.ID == "" {
+		genReq.ID = uuid.New().String()
+	}
+
+	if genReq.StartTime.IsZero() {
+		genReq.StartTime = time.Now().UTC()
+	}
+
+	if err := s.db.CreateGeneration(genReq); err != nil {
+		result.Error = "Database error: " + err.Error()
+		return result
+	}
+
+	result.ID = genReq.ID
+	result.Status = "success"
+	result.Error = ""
+	return result
+}
+
+func (s *Server) processBatchEvent(eventReq database.EventRequest, index int, r *http.Request) database.BatchResult {
+	result := database.BatchResult{
+		Index:  index,
+		Status: "error",
+	}
+
+	if problems := eventReq.Valid(r.Context()); len(problems) > 0 {
+		var errorMessages []string
+		for field, problem := range problems {
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %s", field, problem))
+		}
+		result.Error = "Validation failed: " + strings.Join(errorMessages, ", ")
+		return result
+	}
+
+	if eventReq.ID == "" {
+		eventReq.ID = uuid.New().String()
+	}
+
+	if eventReq.Timestamp.IsZero() {
+		eventReq.Timestamp = time.Now().UTC()
+	}
+
+	if eventReq.Level == "" {
+		eventReq.Level = "info"
+	}
+
+	if !s.db.TraceExists(eventReq.TraceID) {
+		result.Error = "Invalid trace: The specified trace_id does not exist"
+		return result
+	}
+
+	if eventReq.SpanID != "" && !s.db.SpanExists(eventReq.SpanID) {
+		result.Error = "Invalid span: The specified span_id does not exist"
+		return result
+	}
+
+	if err := s.db.CreateEvent(eventReq); err != nil {
+		result.Error = "Database error: " + err.Error()
+		return result
+	}
+
+	result.ID = eventReq.ID
+	result.Status = "success"
+	result.Error = ""
+	return result
+}
+
+func (s *Server) processBatchScore(scoreReq database.ScoreRequest, index int, r *http.Request) database.BatchResult {
+	result := database.BatchResult{
+		Index:  index,
+		Status: "error",
+	}
+
+	if problems := scoreReq.Valid(r.Context()); len(problems) > 0 {
+		var errorMessages []string
+		for field, problem := range problems {
+			errorMessages = append(errorMessages, fmt.Sprintf("%s: %s", field, problem))
+		}
+		result.Error = "Validation failed: " + strings.Join(errorMessages, ", ")
+		return result
+	}
+
+	if scoreReq.ID == "" {
+		scoreReq.ID = uuid.New().String()
+	}
+
+	if scoreReq.Timestamp.IsZero() {
+		scoreReq.Timestamp = time.Now().UTC()
+	}
+
+	if scoreReq.Source == "" {
+		scoreReq.Source = "human"
+	}
+
+	if scoreReq.TraceID != "" && !s.db.TraceExists(scoreReq.TraceID) {
+		result.Error = "Invalid trace: The specified trace_id does not exist"
+		return result
+	}
+
+	if scoreReq.GenerationID != "" && !s.db.GenerationExists(scoreReq.GenerationID) {
+		result.Error = "Invalid generation: The specified generation_id does not exist"
+		return result
+	}
+
+	if err := s.db.CreateScore(scoreReq); err != nil {
+		result.Error = "Database error: " + err.Error()
+		return result
+	}
+
+	result.ID = scoreReq.ID
+	result.Status = "success"
+	result.Error = ""
+	return result
+}
+
 func (s *Server) TraceBatchHandler(w http.ResponseWriter, r *http.Request) {
 	batchReq, problems, err := decodeValid[database.BatchTraceRequest](r)
 	if err != nil {

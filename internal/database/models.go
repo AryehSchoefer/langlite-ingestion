@@ -427,3 +427,27 @@ type BatchSummary struct {
 	Succeeded int `json:"succeeded"`
 	Failed    int `json:"failed"`
 }
+
+type BatchRequest struct {
+	Traces      []TraceRequest      `json:"traces,omitempty"`
+	Spans       []SpanRequest       `json:"spans,omitempty"`
+	Generations []GenerationRequest `json:"generations,omitempty"`
+	Events      []EventRequest      `json:"events,omitempty"`
+	Scores      []ScoreRequest      `json:"scores,omitempty"`
+}
+
+func (br BatchRequest) Valid(ctx context.Context) map[string]string {
+	problems := make(map[string]string)
+
+	totalItems := len(br.Traces) + len(br.Spans) + len(br.Generations) + len(br.Events) + len(br.Scores)
+
+	if totalItems == 0 {
+		problems["batch"] = "at least one item must be provided"
+	}
+
+	if totalItems > 1000 {
+		problems["batch"] = "maximum 1000 items allowed per batch"
+	}
+
+	return problems
+}
