@@ -44,14 +44,24 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Get("/rate-limit-status", s.RateLimitStatusHandler)
 	r.Post("/reset-rate-limit", s.ResetRateLimitHandler)
 
-	// langlite ingestion routes
-	r.Post("/api/v1/traces", s.CreateTrace)
-	r.Post("/api/v1/generations", s.CreateGeneration)
-	r.Post("/api/v1/spans", s.CreateSpan)
+	// queue monitoring endpoints
+	r.Get("/queue-status", s.QueueStatusHandler)
+	r.Get("/worker-status", s.WorkerStatusHandler)
+	r.Get("/processing-status", s.ProcessingStatusHandler)
+
+	// langlite ingestion routes (async processing)
+	r.Post("/api/v1/traces", s.CreateTraceAsync)
+	r.Post("/api/v1/generations", s.CreateGenerationAsync)
+	r.Post("/api/v1/spans", s.CreateSpanAsync)
 	r.Post("/api/v1/spans/{id}", s.UpdateSpan)
 	r.Post("/api/v1/events", s.EventHandler)
 	r.Post("/api/v1/scores", s.ScoreHandler)
 	r.Post("/api/v1/batch", s.BatchHandler)
+
+	// synchronous endpoints
+	r.Post("/api/v1/sync/traces", s.CreateTrace)
+	r.Post("/api/v1/sync/generations", s.CreateGeneration)
+	r.Post("/api/v1/sync/spans", s.CreateSpan)
 
 	return r
 }

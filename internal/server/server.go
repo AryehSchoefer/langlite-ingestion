@@ -13,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"langlite-ingestion/internal/database"
+	"langlite-ingestion/internal/queue"
 )
 
 type Server struct {
@@ -21,12 +22,13 @@ type Server struct {
 	db          database.Service
 	redis       *redis.Client
 	rateLimiter *RateLimiter
+	queueClient *queue.Client
+	workerPool  *queue.WorkerPool
 }
 
 func NewServer() *http.Server {
 	port, _ := strconv.Atoi(os.Getenv("PORT"))
 
-	// Initialize Redis client
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
 		redisAddr = "localhost:6379"
@@ -38,7 +40,6 @@ func NewServer() *http.Server {
 		DB:       0,
 	})
 
-	// Test Redis connection
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -48,8 +49,19 @@ func NewServer() *http.Server {
 	}
 
 	var rateLimiter *RateLimiter
+	var queueClient *queue.Client
+	var workerPool *queue.WorkerPool
+
 	if redisClient != nil {
 		rateLimiter = NewRateLimiter(redisClient)
+		queueClient = queue.NewClient(redisClient)
+
+		workerPool = queue.NewWorkerPool(queueClient, database.New(), 3)
+
+		go func() {
+			ctx := context.Background()
+			workerPool.Start(ctx)
+		}()
 	}
 
 	NewServer := &Server{
@@ -57,6 +69,8 @@ func NewServer() *http.Server {
 		db:          database.New(),
 		redis:       redisClient,
 		rateLimiter: rateLimiter,
+		queueClient: queueClient,
+		workerPool:  workerPool,
 	}
 
 	server := &http.Server{

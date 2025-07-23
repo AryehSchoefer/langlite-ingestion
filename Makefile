@@ -74,4 +74,21 @@ rate-limit-status:
 	@echo "Checking rate limit status..."
 	@./scripts/test_helper.sh status
 
-.PHONY: all build run test clean watch docker-run docker-down itest test-rate-limit reset-rate-limit rate-limit-status
+# Async processing test shortcuts
+test-async:
+	@echo "Testing async processing pipeline..."
+	@./scripts/test_async_processing.sh
+
+queue-status:
+	@echo "Checking queue status..."
+	@curl -s -X GET http://localhost:8080/queue-status -H "Authorization: Bearer test-key-123" | python3 -m json.tool
+
+worker-status:
+	@echo "Checking worker status..."
+	@curl -s -X GET http://localhost:8080/worker-status -H "Authorization: Bearer test-key-123" | python3 -m json.tool
+
+processing-status:
+	@echo "Checking processing status..."
+	@curl -s -X GET http://localhost:8080/processing-status -H "Authorization: Bearer test-key-123" | python3 -m json.tool
+
+.PHONY: all build run test clean watch docker-run docker-down itest test-rate-limit reset-rate-limit rate-limit-status test-async queue-status worker-status processing-status
