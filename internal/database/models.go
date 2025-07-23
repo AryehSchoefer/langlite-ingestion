@@ -11,6 +11,7 @@ import (
 
 type TraceRequest struct {
 	ID        string         `json:"id,omitempty"`
+	ProjectID string         `json:"project_id,omitempty"`
 	Name      string         `json:"name"`
 	Metadata  map[string]any `json:"metadata,omitempty"`
 	Tags      []string       `json:"tags,omitempty"`
@@ -450,4 +451,31 @@ func (br BatchRequest) Valid(ctx context.Context) map[string]string {
 	}
 
 	return problems
+}
+
+type Project struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+type APIKey struct {
+	ID                 string     `json:"id"`
+	ProjectID          string     `json:"project_id"`
+	KeyHash            string     `json:"-"`
+	Name               string     `json:"name"`
+	LastUsedAt         *time.Time `json:"last_used_at,omitempty"`
+	ExpiresAt          *time.Time `json:"expires_at,omitempty"`
+	RateLimitPerMinute int        `json:"rate_limit_per_minute"`
+	RateLimitPerHour   int        `json:"rate_limit_per_hour"`
+	IsActive           bool       `json:"is_active"`
+	CreatedAt          time.Time  `json:"created_at"`
+	UpdatedAt          time.Time  `json:"updated_at"`
+}
+
+type AuthContext struct {
+	ProjectID string
+	APIKeyID  string
 }

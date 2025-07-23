@@ -11,6 +11,17 @@ import (
 )
 
 func (s *Server) CreateTrace(w http.ResponseWriter, r *http.Request) {
+	authCtx, ok := GetAuthContext(r)
+	if !ok {
+		errorResp := database.ErrorResponse{
+			Error:   "Authentication required",
+			Message: "Valid API key required",
+			Code:    http.StatusUnauthorized,
+		}
+		encode(w, r, http.StatusUnauthorized, errorResp)
+		return
+	}
+
 	req, problems, err := decodeValid[database.TraceRequest](r)
 	if err != nil {
 		if len(problems) > 0 {
@@ -32,6 +43,8 @@ func (s *Server) CreateTrace(w http.ResponseWriter, r *http.Request) {
 		encode(w, r, http.StatusBadRequest, errorResp)
 		return
 	}
+
+	req.ProjectID = authCtx.ProjectID
 
 	if req.ID == "" {
 		req.ID = uuid.New().String()

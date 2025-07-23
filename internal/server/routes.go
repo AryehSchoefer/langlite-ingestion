@@ -15,6 +15,7 @@ import (
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+	r.Use(s.AuthMiddleware)
 
 	allowedOrigins := []string{"http://localhost:3000", "http://localhost:8080", "https://app.langlite.com"}
 	if origins := os.Getenv("LANGLITE_CORS_ORIGINS"); origins != "" {

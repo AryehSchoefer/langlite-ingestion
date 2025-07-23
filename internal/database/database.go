@@ -28,6 +28,10 @@ type Service interface {
 	CreateScore(ScoreRequest) error
 	GenerationExists(generationID string) bool
 
+	ValidateAPIKey(keyHash string) (*APIKey, error)
+	UpdateAPIKeyLastUsed(keyID string) error
+	GetProject(projectID string) (*Project, error)
+
 	Close() error
 }
 
@@ -64,8 +68,8 @@ func (s *service) CreateTrace(tr TraceRequest) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	query := `INSERT INTO traces (id, name, metadata, tags, user_id, session_id, start_time, end_time)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+	query := `INSERT INTO traces (id, project_id, name, metadata, tags, user_id, session_id, start_time, end_time)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	var metadata []byte
 	var err error
@@ -76,7 +80,7 @@ func (s *service) CreateTrace(tr TraceRequest) error {
 		}
 	}
 
-	_, err = s.db.ExecContext(ctx, query, tr.ID, tr.Name, metadata, tr.Tags, tr.UserID, tr.SessionID, tr.StartTime, tr.EndTime)
+	_, err = s.db.ExecContext(ctx, query, tr.ID, tr.ProjectID, tr.Name, metadata, tr.Tags, tr.UserID, tr.SessionID, tr.StartTime, tr.EndTime)
 	if err != nil {
 		return fmt.Errorf("Failed to create trace: %w", err)
 	}
@@ -350,6 +354,86 @@ func (s *service) Health() map[string]string {
 	}
 
 	return stats
+}
+
+func (s *service) ValidateAPIKey(keyHash string) (*APIKey, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT id, project_id, key_hash, name, last_used_at, expires_at, 
+	                 rate_limit_per_minute, rate_limit_per_hour, is_active, created_at, updated_at
+	          FROM api_keys 
+	          WHERE key_hash = $1 AND is_active = true`
+
+	var apiKey APIKey
+	var lastUsedAt, expiresAt sql.NullTime
+
+	err := s.db.QueryRowContext(ctx, query, keyHash).Scan(
+		&apiKey.ID, &apiKey.ProjectID, &apiKey.KeyHash, &apiKey.Name,
+		&lastUsedAt, &expiresAt, &apiKey.RateLimitPerMinute, &apiKey.RateLimitPerHour,
+		&apiKey.IsActive, &apiKey.CreatedAt, &apiKey.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("invalid API key")
+		}
+		return nil, fmt.Errorf("failed to validate API key: %w", err)
+	}
+
+	if lastUsedAt.Valid {
+		apiKey.LastUsedAt = &lastUsedAt.Time
+	}
+	if expiresAt.Valid {
+		apiKey.ExpiresAt = &expiresAt.Time
+		if time.Now().UTC().After(*apiKey.ExpiresAt) {
+			return nil, fmt.Errorf("API key has expired")
+		}
+	}
+
+	return &apiKey, nil
+}
+
+func (s *service) UpdateAPIKeyLastUsed(keyID string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `UPDATE api_keys SET last_used_at = $1, updated_at = $2 WHERE id = $3`
+	now := time.Now().UTC()
+
+	_, err := s.db.ExecContext(ctx, query, now, now, keyID)
+	if err != nil {
+		return fmt.Errorf("failed to update API key last used: %w", err)
+	}
+
+	return nil
+}
+
+func (s *service) GetProject(projectID string) (*Project, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	query := `SELECT id, name, description, created_at, updated_at FROM projects WHERE id = $1`
+
+	var project Project
+	var description sql.NullString
+
+	err := s.db.QueryRowContext(ctx, query, projectID).Scan(
+		&project.ID, &project.Name, &description, &project.CreatedAt, &project.UpdatedAt,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("project not found")
+		}
+		return nil, fmt.Errorf("failed to get project: %w", err)
+	}
+
+	if description.Valid {
+		project.Description = description.String
+	}
+
+	return &project, nil
 }
 
 func (s *service) Close() error {
