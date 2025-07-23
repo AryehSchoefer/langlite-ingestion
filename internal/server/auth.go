@@ -16,7 +16,7 @@ const AuthContextKey contextKey = "auth"
 
 func (s *Server) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health" || r.URL.Path == "/" {
+		if r.URL.Path == "/health" || r.URL.Path == "/" || r.URL.Path == "/metrics" {
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -10,11 +10,17 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func (s *Server) RegisterRoutes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	if s.metrics != nil {
+		r.Use(s.MetricsMiddleware)
+	}
+
 	r.Use(s.AuthMiddleware)
 
 	if s.rateLimiter != nil {
@@ -41,6 +47,7 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Get("/", s.HelloWorldHandler)
 
 	r.Get("/health", s.healthHandler)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	r.Get("/rate-limit-status", s.RateLimitStatusHandler)
 	r.Post("/reset-rate-limit", s.ResetRateLimitHandler)
 

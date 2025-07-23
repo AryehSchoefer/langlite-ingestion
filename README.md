@@ -34,12 +34,14 @@ make docker-run
 ```
 
 This automatically:
+
 - Builds and starts both the Go application and PostgreSQL database
 - Initializes the database schema from `schema.sql`
 - Sets up networking between services
 - Falls back to `docker-compose` if `docker compose` isn't available
 
 To stop the services:
+
 ```bash
 make docker-down
 ```
@@ -59,11 +61,13 @@ make watch         # Installs 'air' if needed
 ### Alternative Setups
 
 **Run the Go application locally** (requires external PostgreSQL):
+
 ```bash
 make run
 ```
 
 **Use your own PostgreSQL instance:**
+
 ```bash
 # First, set up your database with the required schema
 psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANGLITE_DB_DATABASE -f schema.sql
@@ -172,6 +176,56 @@ Or use the helper script directly:
 ./scripts/test_helper.sh reset   # Reset rate limits
 ./scripts/test_helper.sh test    # Run basic tests
 ```
+
+## Monitoring & Metrics
+
+The application includes comprehensive Prometheus metrics and Grafana dashboards for monitoring.
+
+### Self-Hosted Setup (Current)
+
+**Access Points:**
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (admin/admin)
+- Metrics endpoint: http://localhost:8080/metrics
+
+**Available Metrics:**
+
+- HTTP request rates, latency, and error rates
+- Queue depths and job processing metrics
+- Worker status and performance
+- Rate limiting usage
+- Database connection stats
+
+### Migration to Managed Prometheus (Future)
+
+When ready to migrate to managed Prometheus (like Grafana Cloud), the process is simple:
+
+**Step 1: Add remote_write to prometheus.yml**
+
+```yaml
+# Add something like this to monitoring/prometheus.yml
+remote_write:
+  - url: "https://prometheus-prod-01-eu-west-0.grafana.net/api/prom/push"
+    basic_auth:
+      username: "your-username"
+      password: "your-api-key"
+```
+
+**Step 2: Restart Prometheus**
+
+```bash
+make docker-down && make docker-run
+```
+
+**Migration Checklist:**
+
+- [ ] Sign up for Grafana Cloud free tier
+- [ ] Get remote_write credentials
+- [ ] Update prometheus.yml with remote_write
+- [ ] Verify data flowing to cloud
+- [ ] Export/import Grafana dashboards
+- [ ] Remove local Prometheus when ready
 
 ## API Endpoints
 

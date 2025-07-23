@@ -13,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"langlite-ingestion/internal/database"
+	"langlite-ingestion/internal/metrics"
 	"langlite-ingestion/internal/queue"
 )
 
@@ -24,6 +25,7 @@ type Server struct {
 	rateLimiter *RateLimiter
 	queueClient *queue.Client
 	workerPool  *queue.WorkerPool
+	metrics     *metrics.Metrics
 }
 
 func NewServer() *http.Server {
@@ -64,6 +66,8 @@ func NewServer() *http.Server {
 		}()
 	}
 
+	metricsInstance := metrics.NewMetrics()
+
 	NewServer := &Server{
 		port:        port,
 		db:          database.New(),
@@ -71,6 +75,12 @@ func NewServer() *http.Server {
 		rateLimiter: rateLimiter,
 		queueClient: queueClient,
 		workerPool:  workerPool,
+		metrics:     metricsInstance,
+	}
+
+	go NewServer.DatabaseMetricsCollector()
+	if queueClient != nil {
+		go NewServer.QueueMetricsCollector()
 	}
 
 	server := &http.Server{

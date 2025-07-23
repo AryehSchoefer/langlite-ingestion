@@ -91,4 +91,21 @@ processing-status:
 	@echo "Checking processing status..."
 	@curl -s -X GET http://localhost:8080/processing-status -H "Authorization: Bearer test-key-123" | python3 -m json.tool
 
-.PHONY: all build run test clean watch docker-run docker-down itest test-rate-limit reset-rate-limit rate-limit-status test-async queue-status worker-status processing-status
+# Metrics and monitoring shortcuts
+test-metrics:
+	@echo "Testing metrics and monitoring..."
+	@./scripts/test_metrics.sh
+
+metrics:
+	@echo "Opening metrics endpoint..."
+	@curl -s http://localhost:8080/metrics | head -20
+
+prometheus:
+	@echo "Prometheus available at: http://localhost:9090"
+	@echo "Targets: http://localhost:9090/targets"
+
+grafana:
+	@echo "Grafana available at: http://localhost:3000"
+	@echo "Login: admin/admin"
+
+.PHONY: all build run test clean watch docker-run docker-down itest test-rate-limit reset-rate-limit rate-limit-status test-async queue-status worker-status processing-status test-metrics metrics prometheus grafana
