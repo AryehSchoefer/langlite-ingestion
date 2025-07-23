@@ -17,6 +17,10 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(s.AuthMiddleware)
 
+	if s.rateLimiter != nil {
+		r.Use(s.rateLimiter.RateLimitMiddleware)
+	}
+
 	allowedOrigins := []string{"http://localhost:3000", "http://localhost:8080", "https://app.langlite.com"}
 	if origins := os.Getenv("LANGLITE_CORS_ORIGINS"); origins != "" {
 		allowedOrigins = strings.Split(origins, ",")
@@ -37,6 +41,8 @@ func (s *Server) RegisterRoutes() http.Handler {
 	r.Get("/", s.HelloWorldHandler)
 
 	r.Get("/health", s.healthHandler)
+	r.Get("/rate-limit-status", s.RateLimitStatusHandler)
+	r.Post("/reset-rate-limit", s.ResetRateLimitHandler)
 
 	// langlite ingestion routes
 	r.Post("/api/v1/traces", s.CreateTrace)

@@ -16,10 +16,13 @@ services:
       LANGLITE_DB_USERNAME: ${LANGLITE_DB_USERNAME}
       LANGLITE_DB_PASSWORD: ${LANGLITE_DB_PASSWORD}
       LANGLITE_DB_SCHEMA: ${LANGLITE_DB_SCHEMA}
+      REDIS_ADDR: redis:6379
     volumes:
       - ./:/app
     depends_on:
       langlite_db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - langlite
@@ -46,6 +49,19 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    networks:
+      - langlite
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
     networks:
       - langlite
 
