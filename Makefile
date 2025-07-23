@@ -61,4 +61,17 @@ watch:
             fi; \
         fi
 
-.PHONY: all build run test clean watch docker-run docker-down itest
+# Rate limiting test shortcuts
+test-rate-limit:
+	@echo "Running rate limit tests..."
+	@./scripts/test_helper.sh test
+
+reset-rate-limit:
+	@echo "Resetting rate limits..."
+	@./scripts/test_helper.sh reset
+
+rate-limit-status:
+	@echo "Checking rate limit status..."
+	@./scripts/test_helper.sh status
+
+.PHONY: all build run test clean watch docker-run docker-down itest test-rate-limit reset-rate-limit rate-limit-status

@@ -82,6 +82,22 @@ docker build --target prod -t myapp:latest .
 
 This creates an optimized production image without development tools like air. The multi-stage build automatically handles dependencies - Docker will build the `build` stage first to compile the Go binary, then create the minimal `prod` stage with just the compiled application.
 
+## Project Structure
+
+```
+├── cmd/                 # Application entrypoints
+├── internal/            # Private application code
+├── migrations/          # Database migrations (Goose format)
+├── scripts/             # Development and testing scripts
+│   ├── test_helper.sh   # Rate limiting test utilities
+│   └── *.sh            # Other test scripts
+├── sql/                 # SQL setup files
+│   ├── schema.sql       # Main database schema
+│   └── setup_test_data.sql # Test data for development
+├── docker-compose.yml   # Development environment
+└── Makefile            # Build and development commands
+```
+
 ## MakeFile
 
 Run build make command with tests
@@ -136,6 +152,25 @@ Clean up binary from the last build:
 
 ```bash
 make clean
+```
+
+## Rate Limiting Development
+
+Test rate limiting functionality:
+
+```bash
+make test-rate-limit      # Run basic rate limit tests
+make reset-rate-limit     # Reset rate limits for testing
+make rate-limit-status    # Check current rate limit usage
+```
+
+Or use the helper script directly:
+
+```bash
+./scripts/test_helper.sh help    # Show all available commands
+./scripts/test_helper.sh status  # Check rate limit status
+./scripts/test_helper.sh reset   # Reset rate limits
+./scripts/test_helper.sh test    # Run basic tests
 ```
 
 ## API Endpoints

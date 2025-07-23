@@ -36,8 +36,8 @@ services:
     ports:
       - "${LANGLITE_DB_PORT}:5432"
     volumes:
-      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./setup_test_data.sql:/docker-entrypoint-initdb.d/02-test-data.sql
+      - ./sql/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./sql/setup_test_data.sql:/docker-entrypoint-initdb.d/02-test-data.sql
       - langlite_volume:/var/lib/postgresql/data
     healthcheck:
       test:
