@@ -29,25 +29,42 @@ type Server struct {
 }
 
 func NewServer() *http.Server {
-	port, _ := strconv.Atoi(os.Getenv("PORT"))
+	var opt *redis.Options
+	var err error
 
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379"
+	redisConnStr := os.Getenv("REDIS_CONN_STR")
+	appEnv := os.Getenv("APP_ENV")
+
+	if redisConnStr != "" && appEnv != "local" && appEnv != "dev" && appEnv != "development" {
+		opt, err = redis.ParseURL(redisConnStr)
+		if err != nil {
+			log.Printf("Error parsing Redis URL: %v", err)
+			opt = nil
+		}
+	} else {
+		redisAddr := os.Getenv("REDIS_ADDR")
+		if redisAddr == "" {
+			redisAddr = "localhost:6379"
+		}
+
+		opt = &redis.Options{
+			Addr:     redisAddr,
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+		}
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
-		Addr:     redisAddr,
-		Password: os.Getenv("REDIS_PASSWORD"),
-		DB:       0,
-	})
+	var redisClient *redis.Client
+	if opt != nil {
+		redisClient = redis.NewClient(opt)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
 
-	if err := redisClient.Ping(ctx).Err(); err != nil {
-		log.Printf("Warning: Redis connection failed: %v. Rate limiting will be disabled.", err)
-		redisClient = nil
+		if err := redisClient.Ping(ctx).Err(); err != nil {
+			log.Printf("Warning: Redis connection failed: %v. Rate limiting will be disabled.", err)
+			redisClient = nil
+		}
 	}
 
 	var rateLimiter *RateLimiter
@@ -68,6 +85,7 @@ func NewServer() *http.Server {
 
 	metricsInstance := metrics.NewMetrics()
 
+	port, _ := strconv.Atoi(os.Getenv("PORT"))
 	NewServer := &Server{
 		port:        port,
 		db:          database.New(),

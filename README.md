@@ -18,6 +18,7 @@ The following variables are needed for Docker Compose to configure the PostgreSQ
 - `LANGLITE_DB_DATABASE` - Database name (e.g., `langlite-ingestion`)
 - `LANGLITE_DB_USERNAME` - Database username (e.g., `langlite_user`)  
 - `LANGLITE_DB_PASSWORD` - Database password
+- `LANGLITE_DB_PORT` - Database port for Docker port mapping (e.g., `5432`)
 
 ### Optional Configuration
 
