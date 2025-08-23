@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -40,12 +41,8 @@ type service struct {
 }
 
 var (
-	database   = os.Getenv("LANGLITE_DB_DATABASE")
-	password   = os.Getenv("LANGLITE_DB_PASSWORD")
-	username   = os.Getenv("LANGLITE_DB_USERNAME")
-	port       = os.Getenv("LANGLITE_DB_PORT")
-	host       = os.Getenv("LANGLITE_DB_HOST")
-	schema     = os.Getenv("LANGLITE_DB_SCHEMA")
+	connStr = os.Getenv("LANGLITE_DB_CONN")
+
 	dbInstance *service
 )
 
@@ -53,7 +50,6 @@ func New() Service {
 	if dbInstance != nil {
 		return dbInstance
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable&search_path=%s", username, password, host, port, database, schema)
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
 		log.Fatal(err)
@@ -436,7 +432,26 @@ func (s *service) GetProject(projectID string) (*Project, error) {
 	return &project, nil
 }
 
+func extractDatabaseName(connStr string) (string, error) {
+	u, err := url.Parse(connStr)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse connection string: %w", err)
+	}
+
+	dbName := strings.TrimPrefix(u.Path, "/")
+	if dbName == "" {
+		return "", fmt.Errorf("no database name found in connection string")
+	}
+
+	return dbName, nil
+}
+
 func (s *service) Close() error {
-	log.Printf("Disconnected from database: %s", database)
+	dbName, err := extractDatabaseName(connStr)
+	if err != nil {
+		dbName = "unknown"
+	}
+
+	log.Printf("Disconnected from database: %s", dbName)
 	return s.db.Close()
 }

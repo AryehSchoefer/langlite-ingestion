@@ -11,7 +11,7 @@ import (
 
 // ResetRateLimitHandler resets rate limits for the authenticated API key (development only)
 func (s *Server) ResetRateLimitHandler(w http.ResponseWriter, r *http.Request) {
-	if os.Getenv("APP_ENV") != "development" && os.Getenv("APP_ENV") != "dev" {
+	if os.Getenv("APP_ENV") != "development" && os.Getenv("APP_ENV") != "dev" && os.Getenv("APP_ENV") != "local" {
 		errorResp := database.ErrorResponse{
 			Error:   "Not allowed",
 			Message: "Rate limit reset is only available in development mode",

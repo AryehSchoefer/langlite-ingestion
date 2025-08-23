@@ -6,22 +6,17 @@ The production-ready Go ingestion API that serves as the backend for the LangLit
 
 The following environment variables are required for the service to run:
 
-### Database Configuration
+### Required Configuration
 
-- `LANGLITE_DB_HOST` - PostgreSQL host (e.g., `localhost`)
-- `LANGLITE_DB_PORT` - PostgreSQL port (e.g., `5432`)
-- `LANGLITE_DB_DATABASE` - Database name (e.g., `langlite`)
-- `LANGLITE_DB_USERNAME` - Database username
-- `LANGLITE_DB_PASSWORD` - Database password
-- `LANGLITE_DB_SCHEMA` - Database schema (e.g., `langlite`)
-
-### Server Configuration
-
+- `LANGLITE_DB_CONN` - Complete PostgreSQL connection string (e.g., `postgres://user:pass@host:5432/dbname?sslmode=disable`)
 - `PORT` - Server port (default: 8080)
 
 ### Optional Configuration
 
+- `APP_ENV` - Application environment (`development`, `dev`, `local`, `production`) - affects rate limit reset endpoint availability
 - `LANGLITE_CORS_ORIGINS` - Comma-separated list of allowed CORS origins (defaults to localhost and app.langlite.com)
+- `REDIS_ADDR` - Redis server address for queue processing (e.g., `localhost:6379`)
+- `REDIS_PASSWORD` - Redis password if authentication is required
 
 ## Getting Started
 
@@ -52,7 +47,7 @@ For local development with live reload, you'll need to use your own PostgreSQL i
 
 ```bash
 # Set up your own PostgreSQL with the schema
-psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANGLITE_DB_DATABASE -f schema.sql
+psql -h localhost -p 5432 -U your_user -d your_database -f sql/schema.sql
 
 # Run Go app with live reload
 make watch         # Installs 'air' if needed
@@ -70,7 +65,7 @@ make run
 
 ```bash
 # First, set up your database with the required schema
-psql -h $LANGLITE_DB_HOST -p $LANGLITE_DB_PORT -U $LANGLITE_DB_USERNAME -d $LANGLITE_DB_DATABASE -f schema.sql
+psql -h localhost -p 5432 -U your_user -d your_database -f sql/schema.sql
 
 # Then run the application
 make run
