@@ -10,12 +10,7 @@ services:
     environment:
       APP_ENV: ${APP_ENV}
       PORT: ${PORT}
-      LANGLITE_DB_HOST: ${LANGLITE_DB_HOST}
-      LANGLITE_DB_PORT: ${LANGLITE_DB_PORT}
-      LANGLITE_DB_DATABASE: ${LANGLITE_DB_DATABASE}
-      LANGLITE_DB_USERNAME: ${LANGLITE_DB_USERNAME}
-      LANGLITE_DB_PASSWORD: ${LANGLITE_DB_PASSWORD}
-      LANGLITE_DB_SCHEMA: ${LANGLITE_DB_SCHEMA}
+      LANGLITE_DB_CONN: ${LANGLITE_DB_CONN}
       REDIS_ADDR: redis:6379
     volumes:
       - ./:/app
@@ -73,12 +68,12 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/etc/prometheus/console_libraries'
-      - '--web.console.templates=/etc/prometheus/consoles'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
     networks:
       - langlite
   grafana:

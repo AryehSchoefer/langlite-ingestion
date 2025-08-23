@@ -11,6 +11,14 @@ The following environment variables are required for the service to run:
 - `LANGLITE_DB_CONN` - Complete PostgreSQL connection string (e.g., `postgres://user:pass@host:5432/dbname?sslmode=disable`)
 - `PORT` - Server port (default: 8080)
 
+### Docker Compose Configuration
+
+The following variables are needed for Docker Compose to configure the PostgreSQL container:
+
+- `LANGLITE_DB_DATABASE` - Database name (e.g., `langlite-ingestion`)
+- `LANGLITE_DB_USERNAME` - Database username (e.g., `langlite_user`)  
+- `LANGLITE_DB_PASSWORD` - Database password
+
 ### Optional Configuration
 
 - `APP_ENV` - Application environment (`development`, `dev`, `local`, `production`) - affects rate limit reset endpoint availability
